@@ -1,0 +1,583 @@
+import { useMemo, useState } from "react";
+import { cn } from "../utils/cn";
+import {
+  CLIENTS,
+  FLOW_TABS,
+  KPIS,
+  LOANS,
+  RANGES,
+  SANKEY,
+  STAGE_TONE,
+  WEEK,
+  avatars,
+  type FlowTab,
+  type LoanRow,
+  type Range,
+} from "../data";
+import { Gauge, RangeBar, Sankey } from "../components/charts";
+import {
+  Avatar,
+  Badge,
+  BigStat,
+  Card,
+  CardHead,
+  Dropdown,
+  Modal,
+  PillBtn,
+  RoundBtn,
+  StageDot,
+  Trend,
+  UnderlineTabs,
+  useToast,
+} from "../components/ui";
+import {
+  ArrowUpRight,
+  ChartBar,
+  ChartLine,
+  Chat,
+  Doc,
+  Dollar,
+  Dots,
+  Gear,
+  Sparkles,
+  Target,
+  Upload,
+} from "../components/icons";
+
+const ROW_TOOLS = [
+  { icon: <Target />, label: "Track applicant" },
+  { icon: <Dollar />, label: "Adjust amount" },
+  { icon: <Chat />, label: "Message applicant" },
+  { icon: <Sparkles />, label: "Auto-underwrite" },
+  { icon: <Doc />, label: "Open documents" },
+];
+
+export default function LoanCenter() {
+  const toast = useToast();
+  const [range, setRange] = useState<Range>("This Month");
+  const [tab, setTab] = useState<FlowTab>("Loan Volume");
+  const [chartMode, setChartMode] = useState<"line" | "bar">("line");
+  const [selected, setSelected] = useState<string[]>(["#LN-8442"]);
+  const [openLoan, setOpenLoan] = useState<LoanRow | null>(null);
+  const [menu, setMenu] = useState<string | null>(null);
+
+  const kpis = KPIS[range];
+  const flow = SANKEY[tab];
+  const totalSelected = useMemo(
+    () => LOANS.filter((l) => selected.includes(l.id)).length,
+    [selected],
+  );
+
+  const toggle = (id: string) =>
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+
+  return (
+    <div className="anim-fade-up grid grid-cols-1 gap-3.5 xl:grid-cols-[292px_minmax(0,1fr)_330px]">
+      {/* ================= LEFT COLUMN ================= */}
+      <div className="flex flex-col gap-3.5">
+        <Card variant="cream" className="p-5">
+          <CardHead
+            title="Total Pipeline Volume"
+            sub="This month"
+            right={<RoundBtn label="Expand pipeline volume" onClick={() => toast("Opened volume breakdown")} />}
+          />
+          <div className="mt-5 flex items-center gap-2.5">
+            <BigStat prefix="$" value="12.4" unit="M" size={46} />
+            <Badge tone="amber" className="mt-1">+12%</Badge>
+          </div>
+          <p className="mt-2 text-[12.5px] font-light text-muted">+$1.3M vs last month</p>
+
+          <div className="relative mt-3 flex justify-center">
+            <Gauge percent={82} size={238} />
+            <div className="pointer-events-none absolute inset-x-0 bottom-3 text-center">
+              <div className="flex items-end justify-center gap-1">
+                <span className="mb-[3px] text-[13px] font-light text-ink-2">%</span>
+                <span className="text-[28px] leading-none font-light tracking-[-0.03em] text-ink">82</span>
+              </div>
+              <p className="mt-1 text-[12px] font-light text-muted">of monthly goal</p>
+            </div>
+          </div>
+
+          <div className="mt-2 flex items-start justify-between">
+            <div>
+              <span className="flex items-center gap-1.5 text-[12.5px] font-light text-ink-2">
+                <StageDot tone="amber" /> Funded
+              </span>
+              <p className="mt-1 text-[14px] text-ink">$2.8M</p>
+            </div>
+            <div className="text-right">
+              <span className="flex items-center justify-end gap-1.5 text-[12.5px] font-light text-ink-2">
+                <StageDot tone="neutral" /> Active
+              </span>
+              <p className="mt-1 text-[14px] text-ink">$10.3M</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card variant="cream" className="flex-1 p-5">
+          <CardHead
+            title="Avg. Closing Time"
+            sub="Rolling 30 days"
+            right={<RoundBtn label="Expand closing time" onClick={() => toast("Opened closing-time report")} />}
+          />
+          <div className="mt-5 flex items-center gap-2.5">
+            <BigStat value="18" unit="Days" size={40} />
+            <Badge tone="amber" className="mt-1">+10%</Badge>
+          </div>
+          <p className="mt-2 text-[12.5px] font-light text-muted">20 days last month</p>
+
+          <div className="mt-9">
+            <div className="mb-1 text-center">
+              <BigStat prefix="$" value="12.4" unit="M" size={20} className="opacity-90" />
+            </div>
+            <RangeBar height={96} />
+            <div className="relative h-2 border-t border-[rgba(22,24,28,0.1)]" aria-hidden="true">
+              {WEEK.map((_, i) => (
+                <span
+                  key={i}
+                  className="absolute top-0 h-[5px] w-px bg-[rgba(22,24,28,0.12)]"
+                  style={{ left: `${(i / (WEEK.length - 1)) * 100}%` }}
+                />
+              ))}
+            </div>
+            <div className="mt-1.5 flex justify-between text-[11px] font-light text-[#c2c6cc]">
+              {WEEK.map((d, i) => (
+                <span key={i}>{d}</span>
+              ))}
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* ================= CENTER COLUMN ================= */}
+      <div className="flex min-w-0 flex-col gap-3.5">
+        <Card className="p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <CardHead title="Pipeline Flow" sub="Updated 12/15/24 at 9:00 AM" />
+            <div className="flex items-center gap-2">
+              <Dropdown value={range} options={RANGES} onChange={(v) => setRange(v as Range)} />
+              <RoundBtn
+                icon={<ChartLine />}
+                label="Line view"
+                size={38}
+                onClick={() => setChartMode("line")}
+                className={cn(chartMode === "line" && "bg-white text-ink")}
+              />
+              <RoundBtn
+                icon={<ChartBar />}
+                label="Bar view"
+                size={38}
+                onClick={() => setChartMode("bar")}
+                className={cn(chartMode === "bar" && "bg-white text-ink")}
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-3">
+            {kpis.map((k) => (
+              <div key={k.caption} className="anim-fade-up" style={{ animationDelay: "60ms" }}>
+                <div className="flex items-start gap-2">
+                  <BigStat
+                    prefix="$"
+                    value={k.value.replace(/M$/, "")}
+                    unit="M"
+                    size={52}
+                  />
+                  <Trend dir={k.dir} className="mt-3" />
+                </div>
+                <p className="mt-2.5 text-[12.5px] font-light text-muted">{k.caption}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
+            <UnderlineTabs tabs={FLOW_TABS} value={tab} onChange={setTab} />
+            <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[12px] text-ink-2 shadow-[0_3px_12px_-8px_rgba(22,24,28,0.5)]">
+              <StageDot tone="amber" /> Updated just now
+            </span>
+          </div>
+
+          <div className="mt-4 overflow-hidden">
+            {chartMode === "line" ? (
+              <Sankey
+                key={tab}
+                sources={flow.sources}
+                stages={flow.stages}
+                outcomes={flow.outcomes}
+                height={244}
+              />
+            ) : (
+              <BarFlow key={tab} flow={flow} />
+            )}
+          </div>
+        </Card>
+
+        {/* -------- Active Loan Pipeline -------- */}
+        <Card className="flex-1 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <CardHead title="Active Loan Pipeline" sub="Rating by Company Activity" />
+            <div className="flex items-center gap-2">
+              {totalSelected > 0 && (
+                <Badge tone="neutral" className="anim-pop">{totalSelected} selected</Badge>
+              )}
+              <RoundBtn icon={<Gear />} label="Table settings" size={38} onClick={() => toast("Table settings saved")} />
+              <RoundBtn label="Expand pipeline" size={38} onClick={() => toast("Opened full pipeline")} />
+            </div>
+          </div>
+
+          <div className="scroll-thin mt-4 -mb-1 overflow-x-auto pb-1">
+            <div className="min-w-[720px]">
+              <div className="grid grid-cols-[28px_1.5fr_1.1fr_1fr_1fr_1.3fr_36px] items-center gap-3 px-2 pb-2 text-[12px] font-light text-muted">
+                <span />
+                <span>Loan Details</span>
+                <span>Current Stage</span>
+                <span>Loan Amount</span>
+                <span>Est. Closing</span>
+                <span>Applicant &amp; Property</span>
+                <span />
+              </div>
+
+              <ul className="space-y-0.5">
+                {LOANS.map((l) => (
+                  <LoanRowItem
+                    key={l.id}
+                    row={l}
+                    checked={selected.includes(l.id)}
+                    onToggle={() => toggle(l.id)}
+                    onOpen={() => setOpenLoan(l)}
+                    onTool={(t) => toast(`${t} · ${l.id}`)}
+                  />
+                ))}
+              </ul>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* ================= RIGHT COLUMN ================= */}
+      <div className="flex flex-col gap-3.5">
+        <div className="shimmer relative overflow-hidden rounded-[24px] p-5 text-white shadow-[0_18px_44px_-24px_rgba(22,24,28,0.5)]">
+          <div
+            className="absolute inset-0 -z-10"
+            style={{
+              background:
+                "linear-gradient(158deg, #F7C23F 0%, #F7CE55 26%, #F1D98C 46%, #DCDCF0 72%, #CBD6F4 100%)",
+            }}
+          />
+          <p className="text-[14.5px] font-medium">Pipeline Insights</p>
+          <p className="mt-0.5 text-[12px] font-light text-white/75">Updated 10 mins ago</p>
+
+          <div className="mt-14 flex items-center gap-2">
+            <span className="text-[12.5px] font-light text-white/85">Action Required</span>
+            <span className="flex -space-x-2">
+              <Avatar src={avatars.michael} name="Michael Chen" size={24} ring />
+              <Avatar src={avatars.emma} name="Emma Davis" size={24} ring />
+            </span>
+          </div>
+
+          <h3 className="mt-2 max-w-[15ch] text-[27px] leading-[1.1] font-light tracking-[-0.03em] text-white">
+            Missing documents <span className="font-medium">for two active</span> applications.
+          </h3>
+
+          <div className="mt-6 flex justify-end">
+            <button
+              type="button"
+              onClick={() => toast("Document request sent")}
+              aria-label="Resolve missing documents"
+              className="press flex h-11 w-11 items-center justify-center rounded-full border border-white/55 text-white hover:bg-white/20"
+            >
+              <ArrowUpRight className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        <Card className="flex-1 p-5">
+          <CardHead
+            title="Client Pipeline"
+            sub="Recently updated applications"
+            right={<RoundBtn label="Expand client pipeline" onClick={() => toast("Opened client directory")} />}
+          />
+          <ul className="mt-4 space-y-1">
+            {CLIENTS.map((c) => (
+              <li key={c.name} className="relative">
+                <div className="group flex items-center gap-2.5 rounded-2xl px-1.5 py-2 transition-colors duration-300 hover:bg-white/70">
+                  <Avatar src={c.avatar} name={c.name} size={34} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13.5px] text-ink">{c.name}</p>
+                    <p className="truncate text-[11.5px] font-light text-muted">{c.role}</p>
+                  </div>
+                  <span className="hidden text-[13px] font-light text-ink-2 sm:inline">{c.amount}</span>
+                  <Badge
+                    tone={c.status === "Pending" ? "amber" : c.status === "Blocked" ? "coral" : "plain"}
+                  >
+                    {c.status}
+                  </Badge>
+                  <button
+                    type="button"
+                    aria-label={`Actions for ${c.name}`}
+                    onClick={() => setMenu(menu === c.name ? null : c.name)}
+                    className="press flex h-7 w-7 items-center justify-center rounded-full text-faint hover:bg-[rgba(22,24,28,0.06)] hover:text-ink-2"
+                  >
+                    <Dots className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {menu === c.name && (
+                  <div className="anim-pop absolute top-full right-0 z-30 mt-1 w-44 origin-top-right overflow-hidden rounded-2xl border border-white/80 bg-white/95 p-1.5 shadow-[0_24px_60px_-20px_rgba(22,24,28,0.35)] backdrop-blur-xl">
+                    {["View application", "Send message", "Request documents"].map((a) => (
+                      <button
+                        key={a}
+                        type="button"
+                        onClick={() => {
+                          setMenu(null);
+                          toast(`${a} · ${c.name}`);
+                        }}
+                        className="w-full rounded-xl px-3 py-2 text-left text-[13px] text-ink-2 transition-colors duration-200 hover:bg-[rgba(22,24,28,0.04)] hover:text-ink"
+                      >
+                        {a}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </div>
+
+      {/* ================= Loan detail modal ================= */}
+      <Modal
+        open={!!openLoan}
+        onClose={() => setOpenLoan(null)}
+        title={openLoan ? `${openLoan.id} · ${openLoan.type}` : ""}
+        sub={openLoan ? `${openLoan.applicant} — ${openLoan.property}` : ""}
+        footer={
+          <>
+            <PillBtn tone="soft" onClick={() => setOpenLoan(null)} className="px-5 py-2.5">
+              Close
+            </PillBtn>
+            <PillBtn
+              tone="dark"
+              className="px-5 py-2.5"
+              onClick={() => {
+                toast(`Advanced ${openLoan?.id} to next stage`);
+                setOpenLoan(null);
+              }}
+            >
+              Advance stage
+            </PillBtn>
+          </>
+        }
+      >
+        {openLoan && (
+          <div className="pb-4">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              {[
+                { k: "Amount", v: openLoan.amount },
+                { k: "Stage", v: openLoan.stage },
+                { k: "Est. Closing", v: openLoan.closing },
+                { k: "Type", v: openLoan.type },
+              ].map((s) => (
+                <div key={s.k} className="rounded-2xl bg-[rgba(22,24,28,0.035)] px-3.5 py-3">
+                  <p className="text-[11.5px] font-light text-muted">{s.k}</p>
+                  <p className="mt-1 text-[14px] text-ink">{s.v}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 rounded-2xl bg-[rgba(22,24,28,0.03)] p-4">
+              <p className="text-[12.5px] font-light text-muted">Progress</p>
+              <div className="mt-3 flex items-center gap-1.5">
+                {["Application", "Processing", "Underwriting", "Appraisal", "Funded"].map((s, i) => {
+                  const idx = ["Processing", "Underwriting", "Appraisal", "Funded", "Rejected"].indexOf(
+                    openLoan.stage,
+                  );
+                  const done = i <= idx + 1;
+                  return (
+                    <div key={s} className="flex-1">
+                      <div
+                        className={cn(
+                          "h-1.5 origin-left rounded-full transition-transform duration-[600ms] ease-out-expo",
+                          done ? "bg-amber" : "bg-[rgba(22,24,28,0.08)]",
+                        )}
+                      />
+                      <p className="mt-1.5 truncate text-[10.5px] font-light text-muted">{s}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center gap-3 rounded-2xl bg-[rgba(22,24,28,0.03)] p-4">
+              <Avatar src={openLoan.avatar} name={openLoan.applicant} size={44} />
+              <div className="min-w-0">
+                <p className="text-[14px] text-ink">{openLoan.applicant}</p>
+                <p className="text-[12px] font-light text-muted">{openLoan.property}</p>
+              </div>
+              <div className="ml-auto flex gap-2">
+                {ROW_TOOLS.slice(0, 3).map((t) => (
+                  <RoundBtn
+                    key={t.label}
+                    icon={t.icon}
+                    label={t.label}
+                    size={36}
+                    tone="soft"
+                    onClick={() => toast(`${t.label} · ${openLoan.id}`)}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+}
+
+/* ---------------- row ---------------- */
+
+function LoanRowItem({
+  row,
+  checked,
+  onToggle,
+  onOpen,
+  onTool,
+}: {
+  row: LoanRow;
+  checked: boolean;
+  onToggle: () => void;
+  onOpen: () => void;
+  onTool: (t: string) => void;
+}) {
+  const [hover, setHover] = useState(false);
+  const tone = STAGE_TONE[row.stage];
+
+  return (
+    <li
+      className="group relative"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <div
+        className={cn(
+          "grid grid-cols-[28px_1.5fr_1.1fr_1fr_1fr_1.3fr_36px] items-center gap-3 rounded-2xl px-2 py-3 transition-colors duration-300",
+          checked ? "bg-white/80" : "hover:bg-white/60",
+        )}
+      >
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={checked}
+          aria-label={`Select ${row.id}`}
+          onClick={onToggle}
+          className={cn(
+            "press flex h-[18px] w-[18px] items-center justify-center rounded-full border transition-colors duration-300",
+            checked ? "border-ink bg-ink text-white" : "border-[rgba(22,24,28,0.16)] bg-[rgba(22,24,28,0.04)]",
+          )}
+        >
+          <span
+            className="h-[7px] w-[7px] rounded-full bg-white transition-transform duration-[400ms] ease-spring"
+            style={{ transform: checked ? "scale(1)" : "scale(0)" }}
+          />
+        </button>
+
+        <button type="button" onClick={onOpen} className="truncate text-left text-[13px] text-ink hover:underline">
+          {row.id} · {row.type}
+        </button>
+
+        <span>
+          <Badge tone="neutral" className="bg-[rgba(22,24,28,0.045)]">
+            <i
+              className={cn(
+                "-ml-0.5 h-[6px] w-[6px] rounded-full",
+                tone === "amber" && "bg-amber",
+                tone === "coral" && "bg-coral",
+                tone === "mint" && "bg-[#7bb694]",
+                tone === "neutral" && "bg-faint",
+              )}
+            />
+            {row.stage}
+          </Badge>
+        </span>
+
+        <span className="text-[13px] text-ink">{row.amount}</span>
+        <span className="text-[13px] font-light text-ink-2">{row.closing}</span>
+        <div className="min-w-0">
+          <p className="truncate text-[13px] text-ink">{row.applicant}</p>
+          <p className="truncate text-[11.5px] font-light text-muted">{row.property}</p>
+        </div>
+
+        <RoundBtn
+          icon={<Upload />}
+          label={`Upload documents for ${row.id}`}
+          size={30}
+          tone="soft"
+          onClick={() => onTool("Upload documents")}
+        />
+      </div>
+
+      {/* floating hover toolbar */}
+      <div
+        aria-hidden={!hover}
+        className="pointer-events-none absolute inset-y-0 left-1/2 z-20 flex items-center"
+        style={{ willChange: "transform, opacity" }}
+      >
+        <div
+          className={cn(
+            "flex items-center gap-1 rounded-full bg-white/90 p-1.5 shadow-[0_18px_40px_-18px_rgba(22,24,28,0.55)] backdrop-blur-xl transition-all duration-[420ms] ease-out-expo",
+            hover ? "pointer-events-auto translate-x-[-50%] translate-y-0 scale-100 opacity-100" : "translate-x-[-50%] translate-y-1.5 scale-90 opacity-0",
+          )}
+        >
+          {ROW_TOOLS.map((t) => (
+            <button
+              key={t.label}
+              type="button"
+              aria-label={t.label}
+              title={t.label}
+              onClick={() => onTool(t.label)}
+              className="press flex h-8 w-8 items-center justify-center rounded-full text-ink-2 hover:bg-[rgba(22,24,28,0.06)] hover:text-ink"
+            >
+              <span className="h-[16px] w-[16px] [&>svg]:h-full [&>svg]:w-full">{t.icon}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+/* ---------------- alternate bar view ---------------- */
+
+function BarFlow({ flow }: { flow: (typeof SANKEY)[FlowTab] }) {
+  const all = [...flow.sources, ...flow.stages, ...flow.outcomes];
+  const max = Math.max(...all.map((n) => n.weight));
+  return (
+    <div className="anim-fade-up grid grid-cols-1 gap-3 pt-2 sm:grid-cols-3">
+      {[flow.sources, flow.stages, flow.outcomes].map((group, gi) => (
+        <div key={gi} className="space-y-2.5">
+          {group.map((n) => (
+            <div key={n.label}>
+              <div className="flex items-baseline justify-between">
+                <span className="text-[12.5px] text-ink">{n.value}</span>
+                <span className="text-[11.5px] font-light text-muted">{n.label}</span>
+              </div>
+              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[rgba(22,24,28,0.05)]">
+                <div
+                  className={cn(
+                    "h-full origin-left rounded-full transition-transform duration-[900ms] ease-out-expo",
+                    gi === 2 && "tone" in n && (n as { tone?: string }).tone === "coral"
+                      ? "bg-coral"
+                      : gi === 1
+                        ? "bg-[#C9D5F2]"
+                        : "bg-amber",
+                  )}
+                  style={{ transform: `scaleX(${n.weight / max})` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
